@@ -23,6 +23,7 @@ type Emoji struct {
 func makeKeywordLookUp(emojis []Emoji) map[string][]Emoji {
 	kwdsMap := make(map[string][]Emoji)
 	for _, emoji := range emojis {
+		kwdsMap[emoji.Key] = append(kwdsMap[emoji.Key], emoji)
 		for _, kwd := range emoji.Keywords {
 			kwdsMap[kwd] = append(kwdsMap[kwd], emoji)
 		}
