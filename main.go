@@ -3,7 +3,14 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/atotto/clipboard"
+	"github.com/codegangsta/cli"
 )
 
 type Emoji struct {
@@ -13,7 +20,21 @@ type Emoji struct {
 	Keywords []string `json:"keywords"`
 }
 
-func main() {
+func makeKeywordLookUp(emojis []Emoji) map[string][]Emoji {
+	kwdsMap := make(map[string][]Emoji)
+	for _, emoji := range emojis {
+		for _, kwd := range emoji.Keywords {
+			kwdsMap[kwd] = append(kwdsMap[kwd], emoji)
+		}
+	}
+	return kwdsMap
+}
+
+var keywordLookUp map[string][]Emoji
+
+func init() {
+	rand.Seed(time.Now().UTC().UnixNano())
+
 	f, err := os.Open("emojis.json")
 	if err != nil {
 		panic(err)
@@ -43,5 +64,66 @@ func main() {
 		emojis = append(emojis, emoji)
 	}
 
-	fmt.Println(emojis)
+	keywordLookUp = makeKeywordLookUp(emojis)
+}
+
+func main() {
+	app := cli.NewApp()
+	app.Name = "emoji"
+	app.Usage = "find and copy emoji to clipboard"
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "random, r",
+			Usage: "select random emoji if multiple choices are available",
+		},
+	}
+	app.Action = func(c *cli.Context) {
+		if len(c.Args()) < 1 {
+			cli.ShowAppHelp(c)
+			return
+		}
+
+		query := strings.ToLower(strings.TrimSpace(c.Args()[0]))
+
+		emojis, ok := keywordLookUp[query]
+		if !ok {
+			fmt.Println("emoji not found 😭")
+			return
+		}
+
+		var emoji Emoji
+		if len(emojis) > 1 {
+			if c.Bool("random") {
+				emoji = emojis[rand.Intn(len(emojis))]
+			} else {
+				for {
+					for i, emj := range emojis {
+						fmt.Printf("%d) %s\n", i+1, emj.Char)
+					}
+
+					var raw string
+					fmt.Printf("choice [1-%d]: ", len(emojis))
+					if _, err := fmt.Scanf("%s", &raw); err == nil {
+						if choice, err := strconv.Atoi(raw); err == nil {
+							if choice >= 1 && choice <= len(emojis) {
+								emoji = emojis[choice-1]
+								break
+							}
+						}
+					}
+
+					fmt.Println("invalid choice, please try again")
+				}
+			}
+		} else {
+			emoji = emojis[0]
+		}
+
+		if err := clipboard.WriteAll(emoji.Char); err != nil {
+			panic(err)
+		}
+		fmt.Printf("copied %s\n", emoji.Char)
+	}
+
+	app.Run(os.Args)
 }
