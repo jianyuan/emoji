@@ -20,6 +20,10 @@ type Emoji struct {
 	Keywords []string `json:"keywords"`
 }
 
+func (emj Emoji) TextCode() string {
+	return fmt.Sprintf(":%s:", emj.Key)
+}
+
 func makeKeywordLookUp(emojis []Emoji) map[string][]Emoji {
 	kwdsMap := make(map[string][]Emoji)
 	for _, emoji := range emojis {
@@ -70,6 +74,10 @@ func main() {
 			Name:  "random, r",
 			Usage: "select random emoji if multiple choices are available",
 		},
+		cli.BoolFlag{
+			Name:  "text, t",
+			Usage: "return emoji as ascii code instead of unicode",
+		},
 	}
 	app.Action = func(c *cli.Context) {
 		if len(c.Args()) < 1 {
@@ -85,6 +93,8 @@ func main() {
 			return
 		}
 
+		useText := c.Bool("text")
+
 		var emoji Emoji
 		if len(emojis) > 1 {
 			if c.Bool("random") {
@@ -92,7 +102,11 @@ func main() {
 			} else {
 				for {
 					for i, emj := range emojis {
-						fmt.Printf("%d) %s\n", i+1, emj.Char)
+						if useText {
+							fmt.Printf("%d) %s %s\n", i+1, emj.Char, emj.TextCode())
+						} else {
+							fmt.Printf("%d) %s\n", i+1, emj.Char)
+						}
 					}
 
 					var raw string
@@ -113,10 +127,17 @@ func main() {
 			emoji = emojis[0]
 		}
 
-		if err := clipboard.WriteAll(emoji.Char); err != nil {
+		var emojiCode string
+		if useText {
+			emojiCode = emoji.TextCode()
+		} else {
+			emojiCode = emoji.Char
+		}
+
+		if err := clipboard.WriteAll(emojiCode); err != nil {
 			panic(err)
 		}
-		fmt.Printf("copied %s\n", emoji.Char)
+		fmt.Printf("copied %s\n", emojiCode)
 	}
 
 	app.Run(os.Args)
