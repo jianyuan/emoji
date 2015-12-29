@@ -35,15 +35,8 @@ var keywordLookUp map[string][]Emoji
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	f, err := os.Open("emojis.json")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	dec := json.NewDecoder(f)
-
 	var data map[string]json.RawMessage
-	if err := dec.Decode(&data); err != nil {
+	if err := json.Unmarshal(MustAsset("emojis.json"), &data); err != nil {
 		panic(err)
 	}
 
