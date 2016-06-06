@@ -40,24 +40,14 @@ var keywordLookUp map[string][]Emoji
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 
-	var data map[string]json.RawMessage
+	var data map[string]Emoji
 	if err := json.Unmarshal(MustAsset("emojis.json"), &data); err != nil {
 		panic(err)
 	}
 
-	// Grab the keys
-	var keys []string
-	if err := json.Unmarshal(data["keys"], &keys); err != nil {
-		panic(err)
-	}
-
 	// Parse emojis
-	emojis := make([]Emoji, 0, len(keys))
-	for _, key := range keys {
-		var emoji Emoji
-		if err := json.Unmarshal(data[key], &emoji); err != nil {
-			panic(err)
-		}
+	emojis := make([]Emoji, 0, len(data))
+	for key, emoji := range data {
 		emoji.Key = key
 		emojis = append(emojis, emoji)
 	}

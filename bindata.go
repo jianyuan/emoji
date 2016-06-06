@@ -83,7 +83,7 @@ func emojisJson() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "emojis.json", size: 168747, mode: os.FileMode(436), modTime: time.Unix(1465253053, 0)}
+	info := bindataFileInfo{name: "emojis.json", size: 168747, mode: os.FileMode(436), modTime: time.Unix(1465253242, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
