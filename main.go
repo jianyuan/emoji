@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"strconv"
@@ -10,48 +10,43 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
 type Emoji struct {
-	Key      string   `json:"-"`
-	Char     string   `json:"char"`
-	Category string   `json:"category"`
-	Keywords []string `json:"keywords"`
+	Emoji          string   `json:"emoji"`
+	Description    string   `json:"description"`
+	Category       string   `json:"category"`
+	Aliases        []string `json:"aliases"`
+	Tags           []string `json:"tags"`
+	UnicodeVersion string   `json:"unicode_version"`
+	IosVersion     string   `json:"ios_version"`
 }
 
 func (emj Emoji) TextCode() string {
-	return fmt.Sprintf(":%s:", emj.Key)
+	if len(emj.Aliases) > 0 {
+		return fmt.Sprintf(":%s:", emj.Aliases[0])
+	}
+	return ""
 }
 
-func makeKeywordLookUp(emojis []Emoji) map[string][]Emoji {
-	kwdsMap := make(map[string][]Emoji)
+func makeKeywordLookUp(emojis []Emoji) map[string][]*Emoji {
+	m := make(map[string][]*Emoji)
 	for _, emoji := range emojis {
-		kwdsMap[emoji.Key] = append(kwdsMap[emoji.Key], emoji)
-		for _, kwd := range emoji.Keywords {
-			kwdsMap[kwd] = append(kwdsMap[kwd], emoji)
+		for _, alias := range emoji.Aliases {
+			m[alias] = append(m[alias], &emoji)
+		}
+		for _, tag := range emoji.Tags {
+			m[tag] = append(m[tag], &emoji)
 		}
 	}
-	return kwdsMap
+	return m
 }
 
-var keywordLookUp map[string][]Emoji
+var keywordLookUp map[string][]*Emoji
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
-
-	var data map[string]Emoji
-	if err := json.Unmarshal(MustAsset("emojis.json"), &data); err != nil {
-		panic(err)
-	}
-
-	// Parse emojis
-	emojis := make([]Emoji, 0, len(data))
-	for key, emoji := range data {
-		emoji.Key = key
-		emojis = append(emojis, emoji)
-	}
-
 	keywordLookUp = makeKeywordLookUp(emojis)
 }
 
@@ -67,6 +62,26 @@ func main() {
 		cli.BoolFlag{
 			Name:  "text, t",
 			Usage: "return emoji as ascii code instead of unicode",
+		},
+	}
+	app.Commands = []cli.Command{
+		{
+			Name: "generate-db",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "output",
+					Value: "emojis.go",
+				},
+			},
+			Action: func(c *cli.Context) error {
+				src, err := generateDatabaseFile()
+				if err != nil {
+					return err
+				}
+
+				outputName := strings.ToLower(c.String("output"))
+				return ioutil.WriteFile(outputName, src, 0644)
+			},
 		},
 	}
 	app.Action = func(c *cli.Context) {
@@ -85,7 +100,7 @@ func main() {
 
 		useText := c.Bool("text")
 
-		var emoji Emoji
+		var emoji *Emoji
 		if len(emojis) > 1 {
 			if c.Bool("random") {
 				emoji = emojis[rand.Intn(len(emojis))]
@@ -93,9 +108,9 @@ func main() {
 				for {
 					for i, emj := range emojis {
 						if useText {
-							fmt.Printf("%d) %s %s\n", i+1, emj.Char, emj.TextCode())
+							fmt.Printf("%d) %s %s\n", i+1, emj.Emoji, emj.TextCode())
 						} else {
-							fmt.Printf("%d) %s\n", i+1, emj.Char)
+							fmt.Printf("%d) %s\n", i+1, emj.Emoji)
 						}
 					}
 
@@ -121,7 +136,7 @@ func main() {
 		if useText {
 			emojiCode = emoji.TextCode()
 		} else {
-			emojiCode = emoji.Char
+			emojiCode = emoji.Emoji
 		}
 
 		if err := clipboard.WriteAll(emojiCode); err != nil {
