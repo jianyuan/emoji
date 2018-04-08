@@ -43,7 +43,7 @@ func generateDatabaseFile() ([]byte, error) {
 	g.Printf("package main")
 	g.Printf("\n")
 
-	g.Printf("var emojis = []Emoji{\n")
+	g.Printf("var Emojis = []Emoji{\n")
 	for _, emoji := range emojis {
 		g.Printf("\t{\n")
 		g.Printf("\t\tEmoji: %s,\n", strconv.Quote(emoji.Emoji))

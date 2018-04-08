@@ -2,7 +2,7 @@
 
 package main
 
-var emojis = []Emoji{
+var Emojis = []Emoji{
 	{
 		Emoji:       "😀",
 		Description: "grinning face",

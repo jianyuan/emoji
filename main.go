@@ -32,12 +32,16 @@ func (emj Emoji) TextCode() string {
 
 func makeKeywordLookUp(emojis []Emoji) map[string][]*Emoji {
 	m := make(map[string][]*Emoji)
-	for _, emoji := range emojis {
+	for idx := range emojis {
+		emoji := &emojis[idx]
+		if emoji.Emoji == "" {
+			continue
+		}
 		for _, alias := range emoji.Aliases {
-			m[alias] = append(m[alias], &emoji)
+			m[alias] = append(m[alias], emoji)
 		}
 		for _, tag := range emoji.Tags {
-			m[tag] = append(m[tag], &emoji)
+			m[tag] = append(m[tag], emoji)
 		}
 	}
 	return m
@@ -47,7 +51,7 @@ var keywordLookUp map[string][]*Emoji
 
 func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
-	keywordLookUp = makeKeywordLookUp(emojis)
+	keywordLookUp = makeKeywordLookUp(Emojis)
 }
 
 func main() {
